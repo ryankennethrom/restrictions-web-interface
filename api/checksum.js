@@ -1,58 +1,15 @@
-import crypto from 'crypto';
-import fs from 'fs';
-import path from 'path';
-import { execSync } from 'child_process';
-import os from 'os';
+import fetch from 'node-fetch';
 
-const REPO_URL = 'https://github.com/ryankennethrom/restrictions-web-interface.git';
-const TEMP_DIR = path.join(os.tmpdir(), 'repo-to-hash');
-
-export function hashFolder(folderPath) {
-  const hash = crypto.createHash('sha256');
-  const EXCLUDE = ['node_modules', '.git'];
-  const hashedItems = [];
-
-  function walkDir(dir) {
-    const entries = fs.readdirSync(dir).sort();
-
-    for (const entry of entries) {
-      if (entry.startsWith('.') || EXCLUDE.includes(entry)) continue;
-
-      const fullPath = path.join(dir, entry);
-      const stat = fs.statSync(fullPath);
-
-      if (stat.isDirectory()) {
-        hashedItems.push(fullPath + '/');
-        walkDir(fullPath);
-      } else if (stat.isFile()) {
-        hashedItems.push(fullPath);
-        const fileBuffer = fs.readFileSync(fullPath);
-        hash.update(fileBuffer);
-      }
-    }
-  }
-
-  walkDir(folderPath);
-  return { hash: hash.digest('hex'), items: hashedItems };
-}
-
-// Vercel endpoint
 export default async function handler(req, res) {
   try {
-    // Remove old temp folder if exists
-    if (fs.existsSync(TEMP_DIR)) fs.rmSync(TEMP_DIR, { recursive: true, force: true });
+    const response = await fetch(
+      'https://api.github.com/repos/ryankennethrom/restrictions-web-interface/commits/main'
+    );
+    const data = await response.json();
+    const commitSHA = data.sha;
 
-    // Clone the repo into temp folder
-    execSync(`git clone --depth 1 ${REPO_URL} ${TEMP_DIR}`, { stdio: 'ignore' });
-
-    const { hash, items } = hashFolder(TEMP_DIR);
-
-    // Cleanup
-    fs.rmSync(TEMP_DIR, { recursive: true, force: true });
-
-    res.status(200).json({ folderHash: hash, hashedItems: items });
+    res.status(200).json({ repoHash: commitSHA });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 }
-
