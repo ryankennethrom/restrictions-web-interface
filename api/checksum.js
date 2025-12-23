@@ -47,8 +47,4 @@ export default async function handler(req, res) {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-  // Running directly from Node CLI
-  const folderHash = hashFolder(process.cwd());
-  console.log(folderHash);
-}
+
