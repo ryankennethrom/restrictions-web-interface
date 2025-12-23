@@ -5,25 +5,26 @@ import path from 'path';
 const FOLDER_PATH = process.cwd(); // root of the project (entire restrictions-web-interface)
 
 function hashFolder(folderPath) {
-  const hash = crypto.createHash('sha256');
+	const hash = crypto.createHash('sha256');
+	const EXCLUDE = ['node_modules', '.git'];
 
-function walkDir(dir) {
-  const entries = fs.readdirSync(dir).sort();
+	function walkDir(dir) {
+	  const entries = fs.readdirSync(dir).sort();
 
-  for (const entry of entries) {
-    // Skip hidden files/folders
-    if (entry.startsWith('.')) continue;
+	  for (const entry of entries) {
+	    if (entry.startsWith('.') || EXCLUDE.includes(entry)) continue;
 
-    const fullPath = path.join(dir, entry);
-    const stat = fs.statSync(fullPath);
+	    const fullPath = path.join(dir, entry);
+	    const stat = fs.statSync(fullPath);
 
-    if (stat.isDirectory()) {
-      walkDir(fullPath);
-    } else if (stat.isFile()) {
-      const fileBuffer = fs.readFileSync(fullPath);
-      hash.update(fileBuffer);
-    }
-  }
+	    if (stat.isDirectory()) {
+	      walkDir(fullPath);
+	    } else if (stat.isFile()) {
+	      const fileBuffer = fs.readFileSync(fullPath);
+	      hash.update(fileBuffer);
+	    }
+	  }
+	}
 }
 
 export default async function handler(req, res) {
