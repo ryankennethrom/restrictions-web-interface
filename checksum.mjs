@@ -1,16 +1,14 @@
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
-import os from 'os';
 
-const REPO_URL = 'https://github.com/ryankennethrom/restrictions-web-interface.git';
-const TEMP_DIR = path.join(os.tmpdir(), 'repo-to-hash');
+const FOLDER_PATH = process.cwd(); // root of project
 
-export function hashFolder(folderPath) {
+function hashFolder(folderPath) {
   const hash = crypto.createHash('sha256');
   const EXCLUDE = ['node_modules', '.git'];
-  const hashedItems = [];
+
+  const hashedItems = []; // store every file/folder hashed
 
   function walkDir(dir) {
     const entries = fs.readdirSync(dir).sort();
@@ -22,10 +20,10 @@ export function hashFolder(folderPath) {
       const stat = fs.statSync(fullPath);
 
       if (stat.isDirectory()) {
-        hashedItems.push(fullPath + '/');
+        hashedItems.push(fullPath + '/'); // indicate directory
         walkDir(fullPath);
       } else if (stat.isFile()) {
-        hashedItems.push(fullPath);
+        hashedItems.push(fullPath); // record file
         const fileBuffer = fs.readFileSync(fullPath);
         hash.update(fileBuffer);
       }
@@ -33,26 +31,26 @@ export function hashFolder(folderPath) {
   }
 
   walkDir(folderPath);
-  return { hash: hash.digest('hex'), items: hashedItems };
+  return {
+    hash: hash.digest('hex'),
+    items: hashedItems,
+  };
 }
 
-// Vercel endpoint
+// Vercel handler
 export default async function handler(req, res) {
   try {
-    // Remove old temp folder if exists
-    if (fs.existsSync(TEMP_DIR)) fs.rmSync(TEMP_DIR, { recursive: true, force: true });
-
-    // Clone the repo into temp folder
-    execSync(`git clone --depth 1 ${REPO_URL} ${TEMP_DIR}`, { stdio: 'ignore' });
-
-    const { hash, items } = hashFolder(TEMP_DIR);
-
-    // Cleanup
-    fs.rmSync(TEMP_DIR, { recursive: true, force: true });
-
+    const { hash, items } = hashFolder(FOLDER_PATH);
     res.status(200).json({ folderHash: hash, hashedItems: items });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 }
 
+// CLI execution
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const { hash, items } = hashFolder(FOLDER_PATH);
+  console.log('SHA-256:', hash);
+  console.log('Hashed items:');
+  items.forEach(i => console.log(i));
+}
