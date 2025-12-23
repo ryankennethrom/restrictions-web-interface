@@ -1,27 +1,125 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Pick Hours</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>Restrictions Dashboard</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    section { margin-bottom: 30px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; }
+    button { margin-right: 10px; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Select Hours</h1>
 
-        <input
-            type="number"
-            id="hoursInput"
-            min="0"
-            step="1"
-            placeholder="Enter hours"
-        />
+<section id="downtime-section">
+  <h2>Set Downtime</h2>
+  <label for="hours">Hours:</label>
+  <input type="number" id="hours" min="0">
+  <button id="saveBtn">Save</button>
+  <pre id="result">Loading downtime...</pre>
+</section>
 
-        <button id="saveBtn">Save</button>
+<section id="lockdown-section">
+  <h2>Set Lockdown</h2>
+  <button id="enable-lockdown">Enable Lockdown</button>
+  <button id="disable-lockdown">Disable Lockdown</button>
+  <p id="lockdown-status">Loading lockdown status...</p>
+</section>
 
-        <p id="status"></p>
-    </div>
+<script type="module">
 
-    <script src="script.js"></script>
+// ================= Downtime Section =================
+const saveBtn = document.getElementById("saveBtn");
+const hoursInput = document.getElementById("hours");
+const result = document.getElementById("result");
+
+const SECRET = '8ca39209498cc55df0c7a39c6737bacc';
+
+saveBtn.addEventListener("click", async () => {
+  const hours = parseInt(hoursInput.value, 10);
+
+  if (isNaN(hours) || hours < 0) {
+    result.textContent = "Please enter a valid number of hours.";
+    return;
+  }
+
+  result.textContent = "Saving...";
+
+  try {
+    const response = await fetch(`/api/downtime-start?hours=${hours}`, {
+      headers: {
+        "x-api-secret": SECRET
+      }
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Request failed");
+    }
+
+    result.textContent = JSON.stringify(data, null, 2);
+  } catch (err) {
+    result.textContent = "Error: " + err.message;
+  }
+});
+
+async function loadDowntime() {
+  try {
+    const res = await fetch("/api/downtime-get");
+    if (!res.ok) {
+      result.textContent = `Error fetching downtime: ${res.status}`;
+      return;
+    }
+    const data = await res.json();
+    result.textContent = JSON.stringify(data, null, 2);
+  } catch (err) {
+    result.textContent = "Error fetching downtime: " + err.message;
+  }
+}
+
+loadDowntime();
+
+// ================= Lockdown Section =================
+const statusEl = document.getElementById('lockdown-status');
+
+async function fetchLockdownStatus() {
+  try {
+    const res = await fetch('/api/lockdown-status');
+    const data = await res.json();
+
+    document.getElementById('lockdown-status').textContent =
+      data.lockdown_active ? 'Lockdown is ENABLED' : 'Lockdown is DISABLED';
+  } catch (err) {
+    document.getElementById('lockdown-status').textContent = 'Failed to fetch lockdown status';
+  }
+}
+
+
+async function toggleLockdown(enable) {
+  const url = enable ? '/api/lockdown-enable' : '/api/lockdown-disable';
+  try {
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: { 'x-lockdown-secret': SECRET } // must match API check
+    });
+
+    if (!res.ok) throw new Error(`Request failed: ${res.status} ${res.statusText}`);
+
+    const data = await res.json();
+    document.getElementById('lockdown-status').textContent =
+      data.lockdown_active ? 'Lockdown is ENABLED' : 'Lockdown is DISABLED';
+  } catch (err) {
+    document.getElementById('lockdown-status').textContent =
+      'Failed to update lockdown: ' + err.message;
+  }
+}
+
+document.getElementById('enable-lockdown').addEventListener('click', () => toggleLockdown(true));
+document.getElementById('disable-lockdown').addEventListener('click', () => toggleLockdown(false));
+
+fetchLockdownStatus();
+</script>
+
 </body>
 </html>
