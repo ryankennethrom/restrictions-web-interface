@@ -25,6 +25,9 @@ function hashFolder(folderPath) {
 	    }
 	  }
 	}
+
+	walkDir(folderPath); // ← call walkDir here
+  	return hash.digest('hex');
 }
 
 export default async function handler(req, res) {
