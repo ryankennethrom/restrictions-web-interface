@@ -7,23 +7,23 @@ const FOLDER_PATH = process.cwd(); // root of the project (entire restrictions-w
 function hashFolder(folderPath) {
   const hash = crypto.createHash('sha256');
 
-  function walkDir(dir) {
-    const entries = fs.readdirSync(dir).sort();
-    for (const entry of entries) {
-      const fullPath = path.join(dir, entry);
-      const stat = fs.statSync(fullPath);
+function walkDir(dir) {
+  const entries = fs.readdirSync(dir).sort();
 
-      if (stat.isDirectory()) {
-        walkDir(fullPath);
-      } else if (stat.isFile()) {
-        const fileBuffer = fs.readFileSync(fullPath);
-        hash.update(fileBuffer);
-      }
+  for (const entry of entries) {
+    // Skip hidden files/folders
+    if (entry.startsWith('.')) continue;
+
+    const fullPath = path.join(dir, entry);
+    const stat = fs.statSync(fullPath);
+
+    if (stat.isDirectory()) {
+      walkDir(fullPath);
+    } else if (stat.isFile()) {
+      const fileBuffer = fs.readFileSync(fullPath);
+      hash.update(fileBuffer);
     }
   }
-
-  walkDir(folderPath);
-  return hash.digest('hex');
 }
 
 export default async function handler(req, res) {
