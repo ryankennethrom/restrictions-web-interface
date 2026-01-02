@@ -30,19 +30,11 @@
 <script type="module">
 /* ================= Crypto Helper ================= */
 
-async function promptAndHashPassword() {
+async function promptPassword() {
   const password = prompt("Enter password:");
   if (!password) throw new Error("Password required");
 
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-
-  return hashArray
-    .map(b => b.toString(16).padStart(2, "0"))
-    .join("");
+  return password
 }
 
 /* ================= Downtime Section ================= */
@@ -62,7 +54,7 @@ saveBtn.addEventListener("click", async () => {
   result.textContent = "Saving...";
 
   try {
-    const secretHash = await promptAndHashPassword();
+    const secretHash = await promptPassword();
 
     const response = await fetch(`/api/downtime-start?hours=${hours}`, {
       headers: {
@@ -118,7 +110,7 @@ async function toggleLockdown(enable) {
     : "/api/lockdown-disable";
 
   try {
-    const secretHash = await promptAndHashPassword();
+    const secretHash = await promptPassword();
 
     const res = await fetch(url, {
       method: "PUT",
