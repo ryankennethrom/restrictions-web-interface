@@ -28,13 +28,28 @@
 </section>
 
 <script type="module">
+/* ================= Crypto Helper ================= */
 
-// ================= Downtime Section =================
+async function promptAndHashPassword() {
+  const password = prompt("Enter password:");
+  if (!password) throw new Error("Password required");
+
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+
+  return hashArray
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+/* ================= Downtime Section ================= */
+
 const saveBtn = document.getElementById("saveBtn");
 const hoursInput = document.getElementById("hours");
 const result = document.getElementById("result");
-
-const SECRET = '8ca39209498cc55df0c7a39c6737bacc';
 
 saveBtn.addEventListener("click", async () => {
   const hours = parseInt(hoursInput.value, 10);
@@ -47,16 +62,16 @@ saveBtn.addEventListener("click", async () => {
   result.textContent = "Saving...";
 
   try {
+    const secretHash = await promptAndHashPassword();
+
     const response = await fetch(`/api/downtime-start?hours=${hours}`, {
       headers: {
-        "x-api-secret": SECRET
+        "x-api-secret": secretHash
       }
     });
-    const data = await response.json();
 
-    if (!response.ok) {
-      throw new Error(data.error || "Request failed");
-    }
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Request failed");
 
     result.textContent = JSON.stringify(data, null, 2);
   } catch (err) {
@@ -80,43 +95,56 @@ async function loadDowntime() {
 
 loadDowntime();
 
-// ================= Lockdown Section =================
-const statusEl = document.getElementById('lockdown-status');
+/* ================= Lockdown Section ================= */
+
+const statusEl = document.getElementById("lockdown-status");
 
 async function fetchLockdownStatus() {
   try {
-    const res = await fetch('/api/lockdown-status');
+    const res = await fetch("/api/lockdown-status");
     const data = await res.json();
 
-    document.getElementById('lockdown-status').textContent =
-      data.lockdown_active ? 'Lockdown is ENABLED' : 'Lockdown is DISABLED';
-  } catch (err) {
-    document.getElementById('lockdown-status').textContent = 'Failed to fetch lockdown status';
+    statusEl.textContent = data.lockdown_active
+      ? "Lockdown is ENABLED"
+      : "Lockdown is DISABLED";
+  } catch {
+    statusEl.textContent = "Failed to fetch lockdown status";
   }
 }
-
 
 async function toggleLockdown(enable) {
-  const url = enable ? '/api/lockdown-enable' : '/api/lockdown-disable';
+  const url = enable
+    ? "/api/lockdown-enable"
+    : "/api/lockdown-disable";
+
   try {
+    const secretHash = await promptAndHashPassword();
+
     const res = await fetch(url, {
-      method: 'PUT',
-      headers: { 'x-lockdown-secret': SECRET } // must match API check
+      method: "PUT",
+      headers: {
+        "x-lockdown-secret": secretHash
+      }
     });
 
-    if (!res.ok) throw new Error(`Request failed: ${res.status} ${res.statusText}`);
+    if (!res.ok) throw new Error(`Request failed: ${res.status}`);
 
     const data = await res.json();
-    document.getElementById('lockdown-status').textContent =
-      data.lockdown_active ? 'Lockdown is ENABLED' : 'Lockdown is DISABLED';
+    statusEl.textContent = data.lockdown_active
+      ? "Lockdown is ENABLED"
+      : "Lockdown is DISABLED";
   } catch (err) {
-    document.getElementById('lockdown-status').textContent =
-      'Failed to update lockdown: ' + err.message;
+    statusEl.textContent = "Failed to update lockdown: " + err.message;
   }
 }
 
-document.getElementById('enable-lockdown').addEventListener('click', () => toggleLockdown(true));
-document.getElementById('disable-lockdown').addEventListener('click', () => toggleLockdown(false));
+document
+  .getElementById("enable-lockdown")
+  .addEventListener("click", () => toggleLockdown(true));
+
+document
+  .getElementById("disable-lockdown")
+  .addEventListener("click", () => toggleLockdown(false));
 
 fetchLockdownStatus();
 </script>
