@@ -1,6 +1,6 @@
 // auth.js
 // The expected SHA-256 hash of the password
-export const EXPECTED_SECRET_HASH = "185f8db32271fe25f561a6fc938b2e264306ec304eda518007d1764826381969";
+export const EXPECTED_SECRET_HASH = "d5592a70cdcb9a5387272206e6d168c842f7a24128488fe722cc229c8c5c278d";
 
 /**
  * Takes a password string, hashes it with SHA-256, and returns true if it matches the expected hash.
