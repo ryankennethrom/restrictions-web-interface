@@ -1,15 +1,15 @@
 import { put } from "@vercel/blob";
+import { verifySecret } from './auth.js';
 
 const TIMEZONE = "America/Edmonton";
-// Use LOCKDOWN_SECRET from environment variables
-const LOCKDOWN_SECRET = process.env.LOCKDOWN_SECRET;
 
 export default async function handler(req, res) {
   try {
     // Validate secret
     const secret = req.query.secret || req.headers["x-api-secret"];
-    if (!secret || secret !== LOCKDOWN_SECRET) {
-      return res.status(401).json({ error: "Unauthorized: invalid secret" });
+    
+    if (!(await verifySecret(secret))) {
+      return res.status(401).json({ error: "Unauthorized: invalid password" });
     }
 
     const hours = parseInt(req.query.hours || "0", 10);

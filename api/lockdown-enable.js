@@ -1,15 +1,16 @@
 import { put } from '@vercel/blob';
+import { verifySecret } from './auth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'PUT') return res.status(405).json({ error: 'Method not allowed' });
 
-  // Secret header check
-  const SECRET = process.env.LOCKDOWN_SECRET;
-  console.log(SECRET)
-  if (req.headers['x-lockdown-secret'] !== SECRET) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
+  const secret = req.query.secret || req.headers["x-api-secret"] || req.headers["x-lockdown-secret"];
 
+  if (!(await verifySecret(secret))) {
+      return res.status(401).json({ error: "Unauthorized: invalid password" });
+    }
+
+  
   try {
     await put('lockdown.json',JSON.stringify({
 		    lockdown_active: true,
