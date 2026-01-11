@@ -1,4 +1,4 @@
-import { decrypt } from "./cryptoBox.js";
+import { decrypt } from "./crypto-box.js";
 
 export default async function handler(req, res) {
     try {
