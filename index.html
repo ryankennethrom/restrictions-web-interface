@@ -73,7 +73,14 @@ saveBtn.addEventListener("click", async () => {
 
 async function loadDowntime() {
   try {
-    const res = await fetch("/api/downtime-get");
+    const secretHash = await promptPassword();
+    
+    const res = await fetch("/api/downtime-get", {
+      headers: {
+        "x-api-secret": secretHash
+      }
+    });
+
     if (!res.ok) {
       result.textContent = `Error fetching downtime: ${res.status}`;
       return;

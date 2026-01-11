@@ -1,5 +1,6 @@
 import { put } from "@vercel/blob";
 import { verifySecret } from './auth.js';
+import { encrypt } from "./crypto-box.js";
 
 const TIMEZONE = "America/Edmonton";
 
@@ -35,8 +36,10 @@ export default async function handler(req, res) {
       timezone: TIMEZONE,
       hours_added: hours,
     };
-
-    await put("downtime.json", JSON.stringify(payload, null, 2), {
+   
+    const encryptedPayload = encrypt(JSON.stringify(payload), secret);
+    
+    await put("downtime.json", encryptedPayload, {
       access: "public",
       contentType: "application/json",
       addRandomSuffix: false,
