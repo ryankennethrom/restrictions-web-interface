@@ -13,7 +13,10 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: "Unauthorized: invalid password" });
     }
 
-    const hours = parseInt(req.query.hours || "0", 10);
+    var hours = parseInt(req.query.hours || "0", 10);
+    if (hours > 22) {
+	    hours = 22
+    }
 
     const utcDate = new Date();
     utcDate.setHours(utcDate.getHours() + hours);
